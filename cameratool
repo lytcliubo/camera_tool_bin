@@ -189,6 +189,9 @@ def save_package_in_db(pack = '', adb={}):
 def select_package():
     #get running package
     ret = get_camera_packages(CAMERA_PACKAGE_NAME)
+    if len(ret) == 0:
+        print 'Thers is no camera package in your system !!'
+        os._exit(0)
     if len(ret) != 1:
         print 'There is one more camera packages in your devices, PLZ select one to run...'
         print ''
