@@ -28,11 +28,11 @@ def send_command(command=""):
     return ret.communicate();
 
 def root_remount():
-    result = send_command(''.join((ADB_PATH,' root ', POWER_PATH)) )[0].replace('\r','').replace('\n', '')
+    result = send_command(''.join((ADB_PATH,' root ')) )[0].replace('\r','').replace('\n', '')
     while 'already running as root' not in result:
-        result = send_command(''.join((ADB_PATH,' root ', POWER_PATH)) )[0].replace('\r','').replace('\n', '')
-    send_command(''.join((ADB_PATH,' wait-for-device ', POWER_PATH)) )[0].replace('\r','').replace('\n', '')
-    send_command(''.join((ADB_PATH,' remount ', POWER_PATH)) )[0].replace('\r','').replace('\n', '')
+        result = send_command(''.join((ADB_PATH,' root ')) )[0].replace('\r','').replace('\n', '')
+    send_command(''.join((ADB_PATH,' wait-for-device ')) )[0].replace('\r','').replace('\n', '')
+    send_command(''.join((ADB_PATH,' remount ')) )[0].replace('\r','').replace('\n', '')
 
 
 def check_powerstate():
