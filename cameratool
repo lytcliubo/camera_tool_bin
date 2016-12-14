@@ -29,8 +29,8 @@ def send_command(command=""):
 
 def root_remount():
     result = send_command(''.join((ADB_PATH,' root ', POWER_PATH)) )[0].replace('\r','').replace('\n', '')
-    if 'already running as root' not in result:
-        time.sleep(1)
+    while 'already running as root' not in result:
+        result = send_command(''.join((ADB_PATH,' root ', POWER_PATH)) )[0].replace('\r','').replace('\n', '')
     send_command(''.join((ADB_PATH,' wait-for-device ', POWER_PATH)) )[0].replace('\r','').replace('\n', '')
     send_command(''.join((ADB_PATH,' remount ', POWER_PATH)) )[0].replace('\r','').replace('\n', '')
 
@@ -65,7 +65,7 @@ def screen_on():
     ret = send_command(''.join((ADB_PATH, 'shell settings put global stay_on_while_plugged_in 3')))[0].replace('\r','').replace('\n','')
     ret = send_command(''.join((ADB_PATH, 'shell settings put system dim_screen 1')))
     ret = send_command(''.join((ADB_PATH, 'shell settings put system screen_off_timeout 2147483647')))
-    
+
 
 def get_device_name():
     root_remount()
@@ -254,8 +254,6 @@ def stop_camera():
             configure['default_package'] = ret
         elif len(runnpkg) == 0:
             return
-    send_command(''.join([ADB_PATH,' root && ', ' wait-for-device']))
-    send_command(''.join([ADB_PATH,' root && ', ' wait-for-device']))
     send_command(''.join([ADB_PATH,' shell am force-stop %s'%(ret)]))
     pass
 
