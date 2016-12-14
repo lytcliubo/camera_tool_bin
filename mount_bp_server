@@ -1,0 +1,2 @@
+#!/bin/sh
+sudo mount -t cifs //172.16.70.75/BP_Server /home/leo/workspace/BP_SERVER -o username=leo,password=sunliu,uid=1000,gid=1000,iocharset=utf8,rw,dir_mode=0777,file_mode=0777

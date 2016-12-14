@@ -1,0 +1,89 @@
+#!/bin/bash
+#
+# Authors: Richard Peng <richard.peng@zhntd.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program;
+#
+if [ "$1" = "" ]
+then
+    cur_path=$(pwd)
+else
+    cur_path=$1
+fi
+echo $cur_path
+
+adb_devices=`adb devices -l`
+fastboot_devices=`fastboot devices -l`
+
+echo $adb_devices
+echo $fastboot_devices
+adb_num=0
+
+for i in ${adb_devices}
+do
+    device=${i##*device:}
+    if [ $device = $i ]		
+    then
+        let adb_num++
+    fi
+done
+
+for i in ${fastboot_devices}
+do
+    device=$(echo $i | awk '{print $1}')		
+    usb=$(echo $i | awk '{print $3}')
+    usb=${usb#*:}
+    if [ -n "${device}" -a -n "${usb}" ]
+    then
+        let adb_num++
+    fi
+done
+
+if [ adb_num != 5 ] 
+then
+    echo "adb_num = " $adb_num
+    echo "One Devices Needed !!!"
+#    exit
+fi
+
+
+
+if [ "$2" = "" ]
+then
+
+adb reboot bootloader
+
+fastboot flash aboot $cur_path/emmc_appsboot.mbn
+fastboot flash boot $cur_path/boot.img
+fastboot flash boot $cur_path/boot_dev.img
+fastboot flash cache $cur_path/cache.img
+fastboot flash recovery $cur_path/recovery.img
+fastboot flash persist $cur_path/persist.img
+fastboot flash system $cur_path/system.img
+fastboot flash userdata $cur_path/userdata.img
+fastboot reboot
+else
+
+adb -s $2 reboot bootloader
+
+fastboot -s $2 flash aboot $cur_path/emmc_appsboot.mbn
+fastboot -s $2 flash boot $cur_path/boot.img
+fastboot -s $2 flash boot $cur_path/boot_dev.img
+fastboot -s $2 flash cache $cur_path/cache.img
+fastboot -s $2 flash recovery $cur_path/recovery.img
+fastboot -s $2 flash persist $cur_path/persist.img
+fastboot -s $2 flash system $cur_path/system.img
+fastboot -s $2 flash userdata $cur_path/userdata.img
+fastboot -s $2 reboot
+fi

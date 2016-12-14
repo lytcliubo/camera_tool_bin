@@ -1,0 +1,177 @@
+#!/usr/bin/env python
+# -*- coding:utf-8 -*- 
+
+ADB_PATH = '/usr/bin/adb'
+ARCH_NAME = 'a.tar'
+
+
+#for tar and scp
+zipfiles = []
+
+
+def open_read_file(path = None):
+    if not path:
+        print "path is null!! exist!!"
+        return -1
+    fd = open(path, 'r')
+    try:
+        text = fd.read()
+    finally:
+        fd.close()
+    #print type(text)
+    #print text
+    return text
+
+import re
+import copy
+def parse_files(text = None):
+    if not text:
+        print "Text is null!! exist!!"
+        return -1
+    m = re.findall('Install: (.*?)\s',text)
+    for i in m:
+        zipfiles.append(i)
+
+
+def save_file_list(filelists, filepath):
+    fd = open (filepath, 'w+')
+    writelist = [i+'\n' for i in filelists]
+    fd.writelines(writelist)
+    fd.close()
+    zipfiles.append(filepath)
+
+
+
+def compress_files(filelist = None, filepath = None):
+    import tarfile
+    tar = tarfile.open(filepath,'w')
+    for i in filelist:
+        tar.add(i)
+    tar.close()
+
+import subprocess
+import time
+def scp_file_local(filepath = None, username = None, ip = None):
+    #print "scp %s %s@%s:%s" % (filepath, 'liubo', '192.168.2.2', '~/so/')
+    p = subprocess.Popen("/usr/bin/scp %s %s@%s:%s" % (filepath,'liubo', '192.168.2.2', '~/so/'), shell = True)
+    p.communicate()
+
+
+#end tar scp
+
+#For adb push
+
+push_files = []
+
+def get_file_list (filepath):
+    fd = open (filepath, 'r')
+    text = fd.read()
+    m = re.findall('(.*?)\s',text);
+    for i in m:
+        push_files.append(i)
+
+def parse_dst(src):
+    product = re.search('product/(.*?)/', src)
+    x = re.findall('product/%s/(.*)'%(product.groups()[0]), src)
+    return x[0]
+
+def push_file(filelist):
+    p = subprocess.Popen('adb wait-for-devices', shell = True)
+    p.communicate()
+    p = subprocess.Popen('adb root', shell = True)
+    p.communicate()
+    p = subprocess.Popen('adb wait-for-devices', shell = True)
+    p.communicate()
+    p = subprocess.Popen('adb remount', shell = True)
+    p.communicate()
+    time.sleep(1)
+    p = subprocess.Popen('adb remount', shell = True)
+    p.communicate()
+    p = subprocess.Popen('adb wait-for-devices', shell = True)
+    p.communicate()
+    for i in filelist:
+        src = i
+        dst = parse_dst(i)
+        'adb push src dst'
+        print "adb push %s  ------>  %s" % (src, dst)
+        p = subprocess.Popen("%s push  %s %s " % (ADB_PATH, src, dst), shell = True)
+        p.communicate()
+    p = subprocess.Popen("%s shell sync" % (ADB_PATH), shell = True)
+    p.communicate()
+
+def uncompress(path):
+    import tarfile
+    tar = tarfile.open(path, 'r')
+    tar.extractall()
+    tar.close()
+
+#end adb phush
+
+
+
+
+def show_help():
+    print '------   Ustage:  ----------'
+    print 'Useing at WorkStation:'
+    print 'default:'
+    print '  myscp -c --->  using 1 as input to create a.tar file and scp to local'
+    print '  myscp -c [teefilename] using teefilename as input and crete a.tar file and scp to local'
+    print '  myscp -c [teefilename] -a [archfilename]  using teefilename and create archfilename.tar and scp to local'
+    print '\n=========================\n'
+    print 'Using at local:'
+    print '  myscp -p   --> using a.tar as input and uncompress and push to devices'
+    print '  myscp -p [tarname] using tarname as input uncompress and push to devices'
+
+import sys
+import getopt
+if __name__ == "__main__":
+    #text = open_read_file("1")
+    #parse_files(text)
+    #save_file_list(zipfiles, './filelist')
+    #print zipfiles
+    #compress_files(zipfiles, "./a.tar")
+    #scp_file_local('./a.tar', 'liubo', '192.168.2.2')
+
+
+    #get_file_list('./filelist')
+    #push_file(push_files)
+
+    teename = '1'
+    tarname = './a.tar'
+
+    if len(sys.argv[1:]) >= 2:
+        #long arg
+        opt,args = getopt.getopt(sys.argv[1:],'p:c:a:', ['creat_tar', 'push_file', 'teefile'])
+    elif len(sys.argv[1:]) == 1:
+        #short arg
+        opt,args = getopt.getopt(sys.argv[1:],'pch', ['creat_tar', 'push_file', 'teefile', 'help'])
+
+    for name,value in opt:
+        if name in ('-a', 'arch_name'):
+            tarname = './' + value
+        if name in ('-p', '--push'):
+            if len(sys.argv[1:]) == 2:
+                tarname = value
+        if name in ('-h', '--help'):
+            show_help()
+
+    for name,value in opt:
+        if name in ('-c', '--create_tar_sc'):
+            if len(sys.argv[1:]) >= 2:
+                teename = value
+            text = open_read_file(teename)
+            parse_files(text)
+            save_file_list(zipfiles, './filelist')
+            compress_files(zipfiles, tarname)
+            scp_file_local(tarname, 'liubo', '192.168.2.2')
+
+        if name in ('-p', '--tarname'):
+            print tarname
+            uncompress(tarname)
+            get_file_list('./filelist')
+            push_file(push_files)
+
+
+
+
+

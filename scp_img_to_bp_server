@@ -1,0 +1,20 @@
+#!/usr/bin/expect
+set timeout 30000
+spawn scp out/ct2/target/product/msm8974/ap.img.tar.gz leo@172.16.70.75:~/Qualcomm_5_1_1_MSM8974BBBBLA421001/common/build/
+expect "password:"
+send "sunliu\n"
+expect "leo@leo-OptiPlex-9020:"
+spawn ssh leo@172.16.70.75
+expect "password:"
+send "sunliu\n"
+expect "leo@ubuntu:"
+send "cd Qualcomm_5_1_1_MSM8974BBBBLA421001/common/build\n"
+expect "build"
+send "tar -xf ap.img.tar.gz \n"
+send "echo \"tar successed\"\n"
+expect "tar successed"
+send "cd ../../ ;cd boot_images/core/storage/tools/jsdcc/partition_load_pt \n"
+expect "partition_load_pt$"
+send "make BUILD_UNIX=yes genfactoryimg\n"
+exit
+interact

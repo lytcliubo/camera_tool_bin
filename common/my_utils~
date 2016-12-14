@@ -1,0 +1,159 @@
+#!/bin/bash
+
+END_DEVICE=
+FASTBOOT="0"
+CORRECT_VALUE=
+
+function correct_device()
+{
+	case "$1" in
+		"I966A")
+			CORRECT_VALUE="a55"
+			;;
+		"Philips AVILA R1" | "AVILA R1" | "B50")
+			CORRECT_VALUE="b50"
+			;;
+		"WD9061")
+			CORRECT_VALUE="wd8"
+			;;
+		"T2HD")
+			CORRECT_VALUE="l1"
+			;;
+		"T2HS")
+			CORRECT_VALUE="l2"
+		"i999")
+			CORRECT_VALUE="i999"
+			;;
+		*)
+			CORRECT_VALUE=""
+			;;
+
+	esac
+}
+
+function select_devices
+{
+	local avail_devices=() 
+	local index=0
+	local all_adb_mode=$(adb devices -l)
+	local all_fastboot_mode=$(fastboot devices -l)
+	local IFSold=${IFS}
+	local usb=
+	local i=
+
+	IFS=$'\n'
+
+	if [ -n "${all_adb_mode}" ]
+	then
+		for i in ${all_adb_mode}
+		do
+			device=${i##*device:}
+			if [ $device = $i ]		
+			then
+				continue
+			fi
+
+			usb=${i%% product*}
+			usb=${usb##*:}
+
+			if [ -n "${device}" -a -n "${usb}" ]
+			then
+				avail_devices[$index]="${device}:${usb}"
+				let index++
+			fi
+		done
+
+	fi
+
+	if [ -n "${all_fastboot_mode}" ]
+	then
+		for i in ${all_fastboot_mode}
+		do
+			device=$(echo $i | awk '{print $1}')		
+			usb=$(echo $i | awk '{print $3}')
+			usb=${usb#*:}
+			if [ -n "${device}" -a -n "${usb}" ]
+			then
+				avail_devices[${index}]="${device}(fastboot):${usb}"
+				let index++
+			fi
+		done
+	fi
+
+	IFS=${IFSold}
+
+	#for i in ${avail_devices[@]}
+	#do
+		#echo "device: $i"
+	#done
+
+	if [ ${index} -eq 1 ]
+	then
+		END_DEVICE="-s usb:${avail_devices[0]##*:}"
+		correct_device "${avail_devices[0]%:*}"
+		#END_DEVICE=
+		if [ "${avail_devices[0]}" != "${avail_devices[0]#*(fastboot)}" ]
+		then
+			FASTBOOT="1"
+
+		else
+			FASTBOOT="0"
+		fi
+	elif [ ${index} -gt 1 ]
+	then
+		echo "$(color bold yellow)There are more than one device, please select:$(color)"
+		select device in "${avail_devices[@]}"
+		do
+			if [ "${device}" != "" ]
+			then
+				echo "you select $(color bold green)${device}$(color)"
+
+				END_DEVICE="-s usb:${device##*:}"
+				correct_device "${device%:*}"
+				if [ "${device}" != "${device#*(fastboot)}" ] 
+				then
+					FASTBOOT="1"
+
+				else
+					FASTBOOT="0"
+				fi
+
+				break
+			else
+				echo "$(color bold red)Error, please select again$(color)"
+			fi
+		done
+	elif [ ${index} -eq 0 ]
+	then
+		echo "$(color bold red)No Device Found$(color)"
+		exit -1
+	fi
+}
+
+function gettop
+{
+    local TOPFILE=build/core/envsetup.mk
+    if [ -n "$TOP" -a -f "$TOP/$TOPFILE" ] ; then
+        echo $TOP
+    else
+        if [ -f $TOPFILE ] ; then
+            # The following circumlocution (repeated below as well) ensures
+            # that we record the true directory name and not one that is
+            # faked up with symlink names.
+            PWD= /bin/pwd
+        else
+            local HERE=$PWD
+            T=
+            while [ \( ! \( -f $TOPFILE \) \) -a \( $PWD != "/" \) ]; do
+                \cd ..
+                T=`PWD= /bin/pwd`
+            done
+            \cd $HERE
+            if [ -f "$T/$TOPFILE" ]; then
+                echo $T
+            fi
+        fi
+    fi
+}
+
+

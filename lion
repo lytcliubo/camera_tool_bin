@@ -1,0 +1,11 @@
+#!/bin/bash
+
+PROGRAM=$(basename $0)
+PROGRAM=$(which $PROGRAM)
+export PATH=${PATH}:"`dirname $PROGRAM`/common"
+
+source my_utils
+select_devices
+
+adb $END_DEVICE shell input keyevent 26
+adb $END_DEVICE shell input keyevent 82

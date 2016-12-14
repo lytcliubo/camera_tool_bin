@@ -1,0 +1,4 @@
+sudo ifconfig eth0 down
+sudo ifconfig eth0 hw ether 34:17:eb:a1:6a:93
+sudo ifconfig eth0 up
+sudo route add default gw 172.16.70.254

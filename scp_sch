@@ -1,0 +1,16 @@
+#!/usr/bin/expect
+set timeout 30000
+spawn ssh leo@172.16.20.21
+expect "password:"
+send "leo@liu\n"
+expect "$ "
+send "./tar.sh > /dev/null \n"
+expect "$ "
+send "exit\n"
+expect "$ "
+sleep 1
+spawn scp leo@172.16.20.21:~/SCH.tar.gz /tmp
+expect "password:"
+send "leo@liu\n"
+send "tar -xvf /tmp/SCH.tar.gz -C ~/sch-pcb/\n"
+interact

@@ -1,0 +1,307 @@
+#!/bin/bash
+#
+# Authors: Richard Peng <richard.peng@zhntd.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program;
+#
+
+PROGRAM=$(basename $0)
+PROGRAM=$(which $PROGRAM)
+export PATH=${PATH}:"`dirname $PROGRAM`/common"
+source my_utils
+
+#cur_path="`pwd`"
+cur_path=$(gettop)
+
+flash_or_not=(0                  0          0        0            0          0            0      )
+image_name=(emmc_appsboot.mbn boot.img cache.img recovery.img persist.img system.img userdata.img)
+bias_name=(aboot              boot     cache     recovery     persist     system     userdata)
+exclue=(0                        0          0        0            0          0            0      )
+
+set -- `getopt -q hf:e: "$@"`
+
+function help2
+{
+	echo "*********************************************************"
+	echo "`basename $0` [-f <imagename>] [-f <imagename>] ...."
+	echo "-f <imagename>:"
+	echo "    imagename should be following:"
+	echo "-e <imagename>: the image not to be flashed."
+	
+	for ((i=0; i<${#image_name[*]}; i++))
+	do
+		echo "[$(color bold yellow)${bias_name[$i]}$(color)] ---------  $(color bold yellow)${image_name[$i]}$(color)"
+	done
+
+	echo "$(color bold red)warn: if there is not -f, all image will be flashed.$(color)"
+	echo "*********************************************************"
+}
+
+function help2
+{
+cat - <<eof
+	$(color bold blue)******************************************************************************$(color)
+	$(color bold green)`basename $0` [-h] [-f <imagename>] [-e <imagename>] ....$(color)
+
+	-h : help
+	-f <imagename>: the image to be flashed.
+	-e <imagename>: the image not to be flashed.
+
+	imagename should be following:
+
+eof
+	
+	for ((i=0; i<${#image_name[*]}; i++))
+	do
+		echo -e "\t[$(color bold yellow)${bias_name[$i]}$(color)]  \t ---------  \t$(color bold yellow)${image_name[$i]}$(color)"
+	done
+
+cat - <<eof
+
+	$(color bold red)warn: if there is not -f and -e , all image will be flashed.$(color)
+	$(color bold blue)******************************************************************************$(color)
+eof
+}
+
+function index_number
+{
+	for ((i=0; i<${#bias_name[*]}; i++))
+	do
+		#set -x 
+		if [ "'${bias_name[$i]}'" = "$1" ]
+		then
+			break
+		fi
+		#set +x
+	done
+
+	if [ $i -ge ${#bias_name[*]} ]
+	then
+		echo "$(color bold red)$1 is not a valid name$(color)"
+		help2
+		return 100;
+	else
+		return $i
+	fi
+}
+
+function clear_zero
+{
+	for ((i=0; i<${#flash_or_not[*]}; i++))
+	do
+		if [ ${exclue[$i]} -eq 1 ]
+		then 
+			flash_or_not[$i]=0
+		fi
+	done
+}
+
+function is_all_zero
+{
+	local sum=0
+
+	for ((i=0; i<${#flash_or_not[*]}; i++))
+	do
+		sum=$(($sum + ${flash_or_not[$i]}))
+	done
+
+	return $sum
+}
+
+function all_set
+{
+	for ((i=0; i<${#flash_or_not[*]}; i++))
+	do
+		flash_or_not[$i]=1
+	done
+}
+
+part_flash=0
+exclue_flag=0
+while [ -n $1 ]
+do
+	case $1 in 
+		-f)
+			index_number $2
+			index=$?
+            if [ $index -ne 100 ]		
+            then
+                flash_or_not[$index]=1
+                part_flash=1
+            else
+                exit -1
+            fi
+			shift
+			;;
+
+		-e)
+			index_number $2
+			index=$?
+			if [ $index -ne 100 ]		
+			then
+				exclue[$index]=1
+				exclue_flag=1
+			else
+				exit -1
+			fi
+			shift
+			;;
+
+		-h )
+			help2
+			exit -1
+			;;
+
+		--)
+			if [ "$2x" != "x" ]
+			then
+				help2
+				exit -1
+			fi
+			break
+			;;
+
+	esac
+	shift
+done
+
+if [ "$part_flash" -eq "0" ]; then
+	all_set
+	if [ $exclue_flag -eq 1 ]
+	then
+		clear_zero
+		is_all_zero
+		if [ $? -eq 0 ]
+		then 
+			echo "$(color bold red)No image to be flashed $(color)"	
+			exit -1
+		else
+			echo "$(color bold yellow)All of images will be flashed , except the following:$(color)"
+			for ((i=0; i<${#flash_or_not[*]}; i++))
+			do
+				if [ ${exclue[$i]} = "1" ]
+				then
+					echo "$(color bold green) ${image_name[$i]} $(color)"
+				fi
+			done
+		fi
+	else
+
+		echo "$(color bold yellow)All of images will be flashed.$(color)"
+	fi
+else
+	clear_zero
+	is_all_zero
+	if [ $? -eq 0 ]
+	then
+		echo "$(color bold red)No image to be flashed $(color)"	
+		exit -1
+	fi
+
+	echo "$(color bold yellow)The following image will be flashed: $(color)"
+	for ((i=0; i<${#image_name[*]}; i++))
+	do
+		if [ ${flash_or_not[$i]} = "1" ]
+		then
+			echo "$(color bold green) ${image_name[$i]} $(color)"
+		fi
+	done
+fi
+
+echo ""
+echo "NTD_TARGET_PRODUCT   =  $(color bold green)$NTD_TARGET_PRODUCT$(color)"
+echo "TARGET_PRODUCT       =  $(color bold green)$TARGET_PRODUCT$(color)"
+
+if [ -z $NTD_TARGET_PRODUCT ]; then
+        NTD_TARGET_PRODUCT="xxxxx"
+fi
+
+if [ -z $TARGET_PRODUCT ]; then
+        TARGET_PRODUCT="xxxxx"
+fi
+
+echo
+select_devices
+
+if [ "${FASTBOOT}" != "1" ]
+then
+	if [ "${NTD_TARGET_PRODUCT}" != "${CORRECT_VALUE}" ]
+	then
+		echo 
+		echo "$(color bold red)Platform is $(color bold green)${NTD_TARGET_PRODUCT}$(color bold red), but Live Device is $(color bold green)${CORRECT_VALUE}$(color)"
+		echo "$(color bold red)The Live Device you select is not match the platform$(color)"
+		echo
+		exit -1
+	fi
+fi
+
+relative_path=out/$NTD_TARGET_PRODUCT/target/product/$TARGET_PRODUCT
+end_path=$cur_path/$relative_path
+
+echo ""
+read -t 5 -p "$cur_path/$(color bold yellow)$relative_path$(color) is right? $(color bold  yellow red)[Y/n]$(color) " result
+
+if [ $? -eq 142 ]
+then
+	echo ""
+fi
+
+case $result in 
+	Y|y|'')
+		if [ ! -d $end_path ]; then
+			echo "path not exit"
+			exit -1
+		fi
+		;; 
+
+	N|n)
+		exit -1
+		;;
+	*)
+		echo "input error"
+		exit -1
+		;;
+esac
+
+for ((i=0; i<${#image_name[*]}; i++))
+do
+	if [ ! -e  $end_path/${image_name[$i]} -a "${flash_or_not[$i]}" = "1" ] ;then
+		echo "$(color bold red)$relative_path/${image_name[$i]} does not exit$(color)"
+		exit -1
+	fi
+done
+
+if [ "$FASTBOOT" != "1" ]; then 
+	echo "adb wait-for-device"
+	adb $END_DEVICE wait-for-device
+
+	echo "adb reboot bootloader"
+	adb $END_DEVICE reboot bootloader
+fi
+
+echo ""
+for ((i=0; i<${#image_name[*]}; i++))
+do
+	if [ "${flash_or_not[$i]}" = "1" ]
+	then
+		echo "$(color bold yellow)fastboot flash ${bias_name[$i]} ${image_name[$i]}$(color)"
+		fastboot flash $END_DEVICE ${bias_name[$i]} $end_path/${image_name[$i]}
+		echo ""
+	fi
+done
+
+echo "fastboot reboot"
+fastboot $END_DEVICE reboot
+
+exit 0

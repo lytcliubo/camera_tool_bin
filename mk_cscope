@@ -1,0 +1,108 @@
+#!/bin/bash
+
+cur="`pwd`"
+
+dir="      bootable \
+           hardware   \
+           frameworks \
+           system     \
+           abi        \
+           cts      \
+           bionic     \
+           external/tiny*   \
+	   external/bluetooth  \
+	   external/libselinux  \
+           kernel     \
+           vendor     \
+           libnativehelper \
+           libcore    \
+           dalvik     \
+	   device     \
+	   packages   \
+       App\
+    Bsp \
+    CMSIS \
+    Drivers \
+    Emlib \ 
+    UC_CPU \
+    UC_LIB \
+    UC_OS \
+    adsp_proc \
+    common\
+    lpass_proc \
+    modem_proc\
+    rpm_proc \
+    wcnss_proc
+           "
+
+filter_dir="\
+        out \
+        .git \
+        hardware/ti \
+        "
+
+ftype="*.c *.java *.h *.cpp"
+
+###########################################################
+
+index_dir=""
+for i in $dir
+do
+    index_dir="$index_dir $cur/$i"
+done
+
+fil_dir="-wholename xx -prune"
+for i in $filter_dir
+do
+        fil_dir="$fil_dir -o -wholename $cur/$i -prune"
+done
+
+file_type=""
+for i in $ftype
+do 
+        file_type="$file_type -o -name $i "
+done
+
+filelist="/tmp/filelist.$RANDOM"
+
+if [ ! -f $filelist ];then
+    touch $filelist
+fi
+
+#-exec readlink -f {} \; \
+#echo "$index_dir"
+#echo "$fil_dir"
+#echo "$file_type"
+#echo "$filelist"
+
+#-exec readlink -f {} \; \
+
+find    $index_dir     \
+        $fil_dir       \
+        $file_type     \
+        1>$filelist    \
+        2>/dev/null
+
+
+CUR_PATH=`pwd`
+
+if [ $# == 0 ]; then
+    echo "No input arg, use default"
+    cscope -bkq -i $filelist  2>/dev/null
+    exit 0;
+fi
+
+while getopts "f:" arg
+do
+    case $arg in
+        f )
+            cscope -f $CUR_PATH/$OPTARG -bkq -i $filelist  2>/dev/null
+            ;;
+        * )
+            echo "unkonw argument use default"
+            cscope -bkq -i $filelist  2>/dev/null
+            ctags  --c-kinds=+cdefgmnpstuv --c++-kinds=+cdefgmnpstuv --fields=+iaS --extra=+q -L $filelist 2>/dev/null
+            ;;
+    esac
+done
+

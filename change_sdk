@@ -1,0 +1,10 @@
+#!/bin/sh
+
+
+case "$1" in 
+    "JDK6" | "6" )
+        export JAVA_HOME=/home/liubo/soft/jdk1.6.0_45
+        export CLASSPATH=.:$JAVA_HOME/lib:$JAVA_HOME/jre/lib:$CLASSPATH
+        export PATH=$JAVA_HOME/bin:$JAVA_HOME/jre/bin:$PATH
+    ;;
+esac

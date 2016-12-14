@@ -1,0 +1,3 @@
+#!/bin/bash
+~/tool_bin/scp_sch
+tar -xvf /tmp/SCH.tar.gz -C ~/sch-pcb/

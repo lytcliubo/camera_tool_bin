@@ -1,0 +1,107 @@
+#!/bin/bash
+#
+# Authors: Richard Peng <richard.peng@zhntd.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program;
+#
+
+PROGRAM=$(basename $0)
+PROGRAM=$(which $PROGRAM)
+export PATH=${PATH}:"`dirname $PROGRAM`/common"
+source my_utils
+#cur_path="`pwd`"
+cur_path=$(gettop)
+
+
+set -- `getopt -q hp:n:l: "$@"`
+
+function help2
+{
+	echo "*********************************************************"
+	echo "`basename $0` -p <src_file path name> -n <src file name>"
+	echo "-p <src_file_path>"
+	echo "-n <src_file_name>"
+    echo "$(color bold green)Example:$(color)"
+    echo "The chromatix head file in the directory ~/yuv_data/"
+    echo "   ls ~/yuv_data/ shows :"
+    echo "        $(color green)ABF_common.h ABF_default.h$(color)"
+    echo "        $(color green)AEC_common.h AEC_default.h$(color)"
+    echo "You should run the script like this"
+    echo "$(color bold red)cp_chromatix -p ~/yuv_data/ -n AEC$(color)"
+    echo "or:"
+    echo "$(color bold red)cp_chromatix -p ~/yuv_data/ -n ABF$(color)"
+	echo "*********************************************************"
+}
+
+
+
+cp_to_path=`sed '/^PATH=/!d;s/.*=//' ~/tool_bin/common/config.cfg`
+echo ""
+read -t 5 -p "  cp_to_path is $(color bold yellow)$cp_to_path.$(color bold red yellow)[Y|n]$(color) " result
+case $result in
+    Y|y|'')
+        ;;
+    N|n)
+        exit -1
+        ;;
+    *)
+        echo "input error"
+        ;;
+
+esac
+echo ""
+
+while [ -n $1 ]
+do
+	case $1 in 
+		-p)
+            cp_to_path=$2
+            echo "PATH="$(echo $cp_to_path | tr -d "\'") > ~/tool_bin/common/config.cfg
+			shift
+			;;
+		-h)
+			help2
+			exit -1
+			;;
+		*)
+            shift
+			break
+			;;
+
+	esac
+    shift
+done
+
+
+#echo ${sensor_names[0]}
+#echo ${#sensor_names[*]}
+
+while [ $# -gt 0 ]
+do
+    tmp=$(echo $1 |tr -d "\'")
+    tmp=$cur_path/$tmp
+    if [ ! -e $tmp ];then
+        echo "$(color bold red)$tmp$(color) does not exit"
+        exit -1
+    fi
+    file="`basename $tmp`"
+    phone_path="`dirname $tmp`""/"
+    phone_path=${phone_path##*${TARGET_PRODUCT}}
+    cp $tmp $cp_to_path
+    shift
+
+
+done
+
+exit 0

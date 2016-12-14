@@ -1,0 +1,155 @@
+#!/bin/bash
+#
+# Authors: Richard Peng <richard.peng@zhntd.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program;
+#
+
+PROGRAM=$(basename $0)
+PROGRAM=$(which $PROGRAM)
+export PATH=${PATH}:"`dirname $PROGRAM`/common"
+withoutask=0
+
+function help_me()
+{
+cat - <<eof
+
+help:	$(color bold green)`basename $PROGRAM` [-h] file1 file2 ...$(color)
+
+eof
+}
+
+source my_utils
+cur_path=$(gettop)
+
+if [ $# -le 0 ]; then
+        echo "input error"
+	help_me
+        exit -1
+fi
+
+set -- `getopt -q hr "$@"`
+
+while [ -n $1 ]
+do
+    case $1 in
+        -h)
+            help_me
+            exit -1
+            ;;
+        -r)
+            withoutask="1"
+            shift
+            ;;
+        *)
+            shift
+            break
+    esac
+done
+
+echo ""
+echo "NTD_TARGET_PRODUCT   =  $(color bold green)$NTD_TARGET_PRODUCT$(color)"
+echo "TARGET_PRODUCT       =  $(color bold green)$TARGET_PRODUCT$(color)"
+
+if [ -z $NTD_TARGET_PRODUCT ]; then
+        NTD_TARGET_PRODUCT="xxxxx"
+fi
+
+if [ -z $TARGET_PRODUCT ]; then
+        TARGET_PRODUCT="xxxxx"
+fi
+
+echo
+select_devices
+if [ "${withoutask}" != "1" ]
+then
+    if [ "${FASTBOOT}" != "1" ]
+    then
+        if [ "${NTD_TARGET_PRODUCT}" != "${CORRECT_VALUE}" ]
+        then
+            echo 
+            echo "$(color bold red)Platform is $(color bold green)${NTD_TARGET_PRODUCT}$(color bold red), but Live Device is $(color bold green)${CORRECT_VALUE}$(color)"
+            echo "$(color bold red)The Live Device you select is not match the platform$(color)"
+            echo
+            exit -1
+        fi
+    else
+        echo "$(color bold red)Live Device is in fastboot$(color)"
+        exit -1
+    fi
+fi
+
+result=`adb $END_DEVICE remount`
+#echo $result
+if [ "$result" != "remount succeeded" ]
+then
+    echo "$(color bold red) adb remount failed! Will exit ! Please check the kernel is DEV version ?"
+    exit -1
+fi
+while [ $# -gt 0 ]
+do
+	#set -x
+	tmp=$(echo $1 | tr -d "\'") 
+	tmp=$cur_path/$tmp
+	if [ ! -e $tmp ];then
+		echo "$(color bold red)$tmp$(color) does not exit"
+		exit -1
+        fi
+
+        file="`basename $tmp`"
+        phone_path="`dirname $tmp`""/"
+        phone_path=${phone_path##*${TARGET_PRODUCT}}
+	#set +x
+
+    if [ "$withoutask" == "1" ]; then
+        result='y'
+    else
+        read -t 5 -p "adb push $(color bold yellow) $file $(color) $(color bold red) $phone_path $(color) right [Y/n]? " result
+    fi
+
+    case $result in 
+        Y|y|'')
+            adb $END_DEVICE push $tmp $phone_path
+                        adb $END_DEVICE shell sync
+                        shift
+                        ;; 
+
+                N|n)
+                        shift
+                        ;;
+                *)
+                        echo "input error"
+                        ;;
+        esac
+
+done
+
+read -t 5 -p "$(color bold blue)adb reboot [Y/n]? $(color)" result
+case $result in 
+        Y|y|'')
+                adb $END_DEVICE reboot
+                ;; 
+
+        N|n)
+                echo "$(color bold red)Can not reboot !! $(color)"
+                exit -1
+                ;;
+        *)
+                echo "input error"
+                exit -1
+                ;;
+esac
+
+echo ""
+exit 0

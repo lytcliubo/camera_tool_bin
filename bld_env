@@ -1,0 +1,51 @@
+#!/bin/bash
+product="b50_4.4 wd8_4.4 b50_5.1 ct2_5.1 Smart_Car i999_6.0";
+b50_4_4_workdir="/home/leo/workspace/b50_4.4/Qualcomm_4_4_M8974AAAAALNXLA35106110";
+wd8_4_4_workdir="/home/leo/workspace/wd8_4.4.3/Qualcomm_4_4_M8974AAAAALNXLA35106110";
+b50_5_1_workdir="/home/leo/workspace/b50_5.1/Qualcomm_5_1_MSM8974AAAALABF111031108x74";
+ct2_5_1_workdir="/home/leo/workspace/ct02/Qualcomm_5_1_1_MSM8974AAAALABF111038108x740";
+i999_6_0_workdir="/home/leo/workspace/i999_6.0/Qualcomm_6.0_MSM8974AAAALABF11301210-8x74";
+complete -W '$product' bld_env
+if [ $# -eq 0 ]; then
+    :
+else
+    case "$1" in
+        "b50_4.4")
+            cd $b50_4_4_workdir
+            source build/envsetup.sh
+            choosecombo 1 msm8974 3 2 "" "" 3
+            ;;
+        "Smart_Car")
+            cd $b50_4_4_workdir
+            source build/envsetup.sh
+            choosecombo 1 msm8974 3 3 "" "" 3
+            ;;
+        "wd8_4.4")
+            cd $wd8_4_4_workdir
+            source build/envsetup.sh
+            choosecombo 1 msm8974 3 1
+            ;;
+        "b50_5.1")
+            cd $b50_5_1_workdir
+            source build/envsetup.sh
+            choosecombo 1 msm8974 3 1 2
+            ;;
+        "ct2_5.1")
+            cd $ct2_5_1_workdir
+            source build/envsetup.sh
+            choosecombo 1 msm8974 3 1 "" "" "y"  "y"
+            ;;
+        "i999_6.0")
+            cd $i999_6_0_workdir
+            source build/envsetup.sh
+            choosecombo 1 msm8974 3 1
+            ;;
+        *)
+            echo -n "error $product"
+            ;;
+
+        esac
+    fi
+
+
+

@@ -1,0 +1,146 @@
+#!/bin/bash
+#
+# Authors: Richard Peng <richard.peng@zhntd.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program;
+#
+
+PROGRAM=$(basename $0)
+PROGRAM=$(which $PROGRAM)
+export PATH=${PATH}:"`dirname $PROGRAM`/common"
+source my_utils
+
+#cur_path="`pwd`"
+cur_path=$(gettop)
+
+
+set -- `getopt -q hp:n:l: "$@"`
+
+function help2
+{
+	echo "*********************************************************"
+	echo "`basename $0` -p <src_file path name> -n <src file name>"
+	echo "-p <src_file_path>"
+	echo "-n <src_file_name>"
+    echo "$(color bold green)Example:$(color)"
+    echo "The chromatix head file in the directory ~/yuv_data/"
+    echo "   ls ~/yuv_data/ shows :"
+    echo "        $(color green)ABF_common.h ABF_default.h$(color)"
+    echo "        $(color green)AEC_common.h AEC_default.h$(color)"
+    echo "You should run the script like this"
+    echo "$(color bold red)cp_chromatix -p ~/yuv_data/ -n AEC$(color)"
+    echo "or:"
+    echo "$(color bold red)cp_chromatix -p ~/yuv_data/ -n ABF$(color)"
+	echo "*********************************************************"
+}
+
+
+
+while [ -n $1 ]
+do
+	case $1 in 
+		-p)
+            src_file_path="$2"
+            src_file_path=${src_file_path##"'"}
+            src_file_path=${src_file_path%%"'"}
+			shift
+			;;
+
+		-n)
+			src_file_name="$2"
+            src_file_name=${src_file_name##"'"}
+            src_file_name=${src_file_name%%"'"}
+			shift
+			;;
+		-l)
+            echo $2
+
+			shift
+			;;
+
+		-h)
+			help2
+			exit -1
+			;;
+		--)
+			break
+			;;
+
+	esac
+    shift
+done
+
+
+if [ -z $src_file_path ] || [ -z $src_file_name ];then
+    help2
+    exit -1
+fi
+
+
+
+relative_path=out/$NTD_TARGET_PRODUCT/target/product/$TARGET_PRODUCT
+end_path=$cur_path/$relative_path
+which_sensor=
+chromatix_path=$cur_path/vendor/qcom/proprietary/mm-camera/mm-camera2/media-controller/modules/sensors/chromatix/0301/libchromatix
+declare -a sensor_names
+sensor_names=(`ls $chromatix_path|grep chromatix_`)
+
+#echo ${sensor_names[0]}
+#echo ${#sensor_names[*]}
+echo "$(color bold green)Here will list the sensors that we have support"
+for ((a=0;a<${#sensor_names[*]};a++))
+do
+    echo "  $(color bold yellow)[$a] $(color) -- ${sensor_names[$a]}"
+done
+
+read -p  "$(color bold yellow)Which sensor do you want to copy the chromatix head file?$(color bold red green)[0 -- $[${#sensor_names[*]}-1]]$(color)  " result
+
+if [ $? -eq 142 ]
+then
+	echo ""
+fi
+
+if [ $result -lt ${#sensor_names[*]} ]
+then
+    common_head_name=(`ls $chromatix_path/${sensor_names[($result)]}/common/ |grep common.h`)
+    if [ $? -eq 0 ]
+    then
+        cp $src_file_path/${src_file_name}"_common.h" $chromatix_path/${sensor_names[($result)]}/common/$common_head_name
+    fi
+    preview_head_name=(`ls $chromatix_path/${sensor_names[($result)]}/preview/ |grep preview.h`)
+    if [ $? -eq 0 ]
+    then
+        cp $src_file_path/${src_file_name}"_default.h" $chromatix_path/${sensor_names[($result)]}/preview/$preview_head_name
+    fi
+    liveshot_head_name=(`ls $chromatix_path/${sensor_names[($result)]}/liveshot/ |grep liveshot.h`)
+    if [ $? -eq 0 ]
+    then
+        cp $src_file_path/${src_file_name}"_default.h" $chromatix_path/${sensor_names[($result)]}/liveshot/$liveshot_head_name
+    fi
+    snapshot_head_name=(`ls $chromatix_path/${sensor_names[($result)]}/snapshot/ |grep snapshot.h`)
+    if [ $? -eq 0 ]
+    then
+        cp $src_file_path/${src_file_name}"_default.h" $chromatix_path/${sensor_names[($result)]}/snapshot/$snapshot_head_name
+    fi
+    video_head_name=(`ls $chromatix_path/${sensor_names[($result)]}/video/ |grep video.h`)
+    if [ $? -eq 0 ]
+    then
+        cp $src_file_path/${src_file_name}"_default.h" $chromatix_path/${sensor_names[($result)]}/video/$video_head_name
+    fi
+else
+    echo "You Input sensor num is too large , the largest is "${#sensor_names[*]}
+    exit -1
+fi
+
+exit 0

@@ -1,0 +1,34 @@
+#!/bin/bash
+PROGRAM=$(basename $0)
+PROGRAM=$(which $PROGRAM)
+export PATH=${PATH}:"`dirname $PROGRAM`/common"
+
+
+source my_utils
+cur_path=$(gettop)
+set -- `getopt -q h "$@"`
+
+echo "NTD_TARGET_PRODUCT   =  $(color bold green)$NTD_TARGET_PRODUCT$(color)"
+echo "TARGET_PRODUCT       =  $(color bold green)$TARGET_PRODUCT$(color)"
+
+if [ -z $NTD_TARGET_PRODUCT ]; then
+    echo "$(color bold green)Target Product is not set !!(color)"
+    exit -1
+fi
+
+cd out/$NTD_TARGET_PRODUCT/target/product/msm8974/
+
+tar -cvzf ap.img.tar.gz \
+boot.img \
+cache.img \
+emmc_appsboot.mbn \
+ramdisk.img \
+ramdisk-recovery.img \
+recovery.img \
+system.img \
+userdata.img
+
+#!/usr/bin/expect
+cd -
+~/tool_bin/scp_img_to_bp_server
+
